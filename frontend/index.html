@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Web Scraper</title>
+  <link rel="stylesheet" href="style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <div class="noise"></div>
+
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">⬡</span>
+      <span class="logo-text">WebMind<span class="accent">AI</span></span>
+    </div>
+    <div class="tagline">Intelligent Web Extraction Engine</div>
+  </header>
+
+  <main class="main">
+
+    <section class="hero">
+      <h1 class="hero-title">
+        <span class="line1">Scrape.</span>
+        <span class="line2">Analyze.</span>
+        <span class="line3">Understand.</span>
+      </h1>
+      <p class="hero-sub">Paste any URL — our AI extracts all links and delivers a deep intelligence report.</p>
+    </section>
+
+    <section class="input-section">
+      <div class="input-wrapper">
+        <span class="input-prefix">https://</span>
+        <input
+          type="text"
+          id="urlInput"
+          placeholder="www.example.com/page"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="scrapeBtn" onclick="scrape()">
+          <span class="btn-text">Analyze</span>
+          <span class="btn-arrow">→</span>
+        </button>
+      </div>
+      <div class="input-hints">
+        <span>Try: wikipedia.org</span>
+        <span>•</span>
+        <span>github.com</span>
+        <span>•</span>
+        <span>news.ycombinator.com</span>
+      </div>
+    </section>
+
+    <div id="loader" class="loader hidden">
+      <div class="loader-bar">
+        <div class="loader-fill"></div>
+      </div>
+      <p class="loader-text">Scraping & analyzing with AI<span class="dots">...</span></p>
+    </div>
+
+    <section id="output" class="output hidden">
+
+      <div class="output-meta">
+        <div class="meta-item">
+          <span class="meta-label">URL Analyzed</span>
+          <span class="meta-value" id="metaUrl">—</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Links Found</span>
+          <span class="meta-value" id="metaCount">—</span>
+        </div>
+        <div class="meta-item">
+          <span class="meta-label">Status</span>
+          <span class="meta-value status-ok">✓ Success</span>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+
+        <div class="card card-ai">
+          <div class="card-header">
+            <span class="card-icon">◈</span>
+            <h2 class="card-title">AI Analysis</h2>
+            <span class="card-badge">GPT-powered</span>
+          </div>
+          <div class="card-body" id="aiAnalysis">
+            <p class="placeholder-text">Analysis will appear here...</p>
+          </div>
+        </div>
+
+        <div class="card card-links">
+          <div class="card-header">
+            <span class="card-icon">⊞</span>
+            <h2 class="card-title">Extracted Links</h2>
+            <div class="header-actions">
+              <input type="text" id="linkSearch" placeholder="Filter links..." oninput="filterLinks()" />
+              <button class="export-btn" onclick="exportCSV()">↓ CSV</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table id="linksTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Link Text</th>
+                  <th>URL</th>
+                  <th>Type</th>
+                  <th>Open</th>
+                </tr>
+              </thead>
+              <tbody id="linksBody">
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <span id="linkCountLabel">0 links</span>
+            <span id="filterCount" class="filter-count"></span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <div id="errorBox" class="error-box hidden">
+      <span class="error-icon">✕</span>
+      <span id="errorMsg">Something went wrong.</span>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    <span>Built with FastAPI + BeautifulSoup + Claude AI</span>
+    <span class="footer-dot">◆</span>
+    <span>Major Project 2026</span>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
