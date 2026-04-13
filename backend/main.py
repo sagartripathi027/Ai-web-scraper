@@ -8,43 +8,29 @@ import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, HttpUrl
-import anthropic
+import google.generativeai as genai
 
 from scraper import scrape
 
+# ── App setup ───────────────────────────────────────────────
+genai.configure(api_key="AIzaSyB6wH3HFD6esxLXGD4YFXDGYMykmPkow50")
 
-# ── App setup ─────────────────────────────────────────────
-app = FastAPI(
-    title="AI Web Scraper API",
-    description="Scrapes a URL for links and generates AI analysis using Claude.",
-    version="1.0.0",
-)
+app = FastAPI()
 
-# Allow requests from the frontend (any localhost port during dev)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # Tighten in production
-    allow_credentials=True,
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ── Anthropic client ───────────────────────────────────────
-# Set your API key as an environment variable:
-#   Windows:  set ANTHROPIC_API_KEY=sk-ant-...
-#   Linux/Mac: export ANTHROPIC_API_KEY=sk-ant-...
-client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-
-
-# ── Request & Response schemas ─────────────────────────────
+# ── Request & Response schemas ──────────────────────────────
 class ScrapeRequest(BaseModel):
     url: str
-
 
 class LinkItem(BaseModel):
     text: str
     url: str
-
 
 class ScrapeResponse(BaseModel):
     url: str
@@ -53,11 +39,8 @@ class ScrapeResponse(BaseModel):
     ai_analysis: str
 
 
-# ── AI Analysis helper ─────────────────────────────────────
+# ── AI Analysis helper ──────────────────────────────────────
 def generate_ai_analysis(url: str, page_summary: dict, links: list) -> str:
-    """
-    Send page metadata + link count to Claude and get a structured analysis.
-    """
     total = len(links)
     internal = sum(1 for l in links if url.split("/")[2] in l["url"])
     external = total - internal
@@ -90,16 +73,15 @@ Write a clear, structured analysis covering:
 Use **bold** for section labels. Keep it professional, insightful, and under 300 words.
 """
 
-    message = client.messages.create(
-        model="claude-opus-4-5",
-        max_tokens=600,
-        messages=[{"role": "user", "content": prompt}],
-    )
+    try:
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        return f"AI analysis unavailable: {str(e)}"
 
-    return message.content[0].text
 
-
-# ── Routes ─────────────────────────────────────────────────
+# ── Routes ──────────────────────────────────────────────────
 @app.get("/")
 def root():
     return {
@@ -111,20 +93,13 @@ def root():
 
 @app.post("/scrape", response_model=ScrapeResponse)
 def scrape_url(body: ScrapeRequest):
-    """
-    POST /scrape
-    Body: { "url": "https://example.com" }
-    Returns extracted links and AI analysis.
-    """
     url = body.url.strip()
     if not url:
         raise HTTPException(status_code=400, detail="URL cannot be empty.")
 
-    # Normalize URL
     if not url.startswith("http://") and not url.startswith("https://"):
         url = "https://" + url
 
-    # 1. Scrape the page
     try:
         result = scrape(url)
     except ValueError as e:
@@ -135,12 +110,7 @@ def scrape_url(body: ScrapeRequest):
     links = result["links"]
     page_summary = result["page_summary"]
 
-    # 2. Generate AI analysis
-    try:
-        ai_analysis = generate_ai_analysis(url, page_summary, links)
-    except Exception as e:
-        # Don't fail the whole request if AI fails
-        ai_analysis = f"AI analysis unavailable: {str(e)}"
+    ai_analysis = generate_ai_analysis(url, page_summary, links)
 
     return ScrapeResponse(
         url=url,
@@ -150,7 +120,7 @@ def scrape_url(body: ScrapeRequest):
     )
 
 
-# ── Dev entry point ────────────────────────────────────────
+# ── Dev entry point ─────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

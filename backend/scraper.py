@@ -7,27 +7,23 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from typing import List, Dict
-
+# ── Constants ──────────────────────────────────────────────
+TIMEOUT = 12  # seconds
 
 HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/122.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "en-US,en;q=0.9",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
 }
-
-TIMEOUT = 12  # seconds
 
 
 def fetch_page(url: str) -> str:
     """Download page HTML. Raises on HTTP error or timeout."""
-    response = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+    response = requests.get(url, headers=HEADERS, timeout=TIMEOUT, verify=False)
     response.raise_for_status()
     return response.text
-
 
 def extract_links(html: str, base_url: str) -> List[Dict[str, str]]:
     """
