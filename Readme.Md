@@ -1,203 +1,180 @@
-# 🚀 AI Web Scraper + Intelligence Engine
+# ⚡ JobMind AI — Intelligent Job Discovery Platform
 
-An advanced web scraping tool powered by AI that not only extracts links but also analyzes and generates insights from web content.
-
----
-
-## 🌟 Features
-
-### 🔗 Smart Link Extraction
-
-* Extracts all links from any given URL
-* Handles structured and unstructured HTML
-* Fast and efficient scraping
-
-### 🧠 AI-Powered Analysis
-
-* Generates intelligent summaries
-* Identifies key patterns and insights
-* Converts raw data into meaningful information
-
-### 📊 Interactive Dashboard
-
-* Clean and modern UI
-* Displays extracted links in tabular format
-* Real-time status updates
-
-### ⚡ High Performance Backend
-
-* Built with FastAPI for speed and scalability
-* Handles multiple requests efficiently
+An AI-powered job scraper with authentication, persistent storage, and Gemini AI analysis.
 
 ---
 
-## 🏗️ Project Structure
+## 🏗️ Architecture
 
 ```
-AI-Web-Scraper/
-│
+ai-job-scraper/
 ├── backend/
-│   ├── main.py        # FastAPI backend
-│   ├── scraper.py     # Scraping logic
-│
+│   ├── __init__.py
+│   ├── main.py        ← FastAPI app (auth + routes)
+│   ├── scraper.py     ← Web scraping engine
+│   └── database.py    ← SQLite ORM (users, sessions, jobs, history)
 ├── frontend/
-│   ├── index.html     # UI
-│   ├── script.js      # API calls
-│   ├── style.css      # Styling
-│
+│   └── index.html     ← Full SPA (auth, search, saved, history, profile)
+├── deploy/
+│   └── nginx.conf     ← Nginx reverse proxy config
+├── .env.example
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
 └── README.md
 ```
 
 ---
 
-## ⚙️ Installation
+## 🚀 Quick Start (Local Dev)
 
-### 1️⃣ Clone the Repository
-
-```bash
-git clone https://github.com/your-username/ai-web-scraper.git
-cd ai-web-scraper
-```
-
-### 2️⃣ Create Virtual Environment
+### 1. Clone & install
 
 ```bash
+cd "ai-job-scraper"
 python -m venv venv
-venv\Scripts\activate   # Windows
-```
 
-### 3️⃣ Install Dependencies
+# Windows
+venv\Scripts\activate
 
-```bash
+# Mac/Linux
+source venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
----
-
-## ▶️ Run the Project
-
-### Start Backend (FastAPI)
+### 2. Configure environment
 
 ```bash
-uvicorn main:app --reload
+cp .env.example .env
+# Edit .env and add your GOOGLE_API_KEY
+# Get a free key at: https://aistudio.google.com
 ```
 
-Backend will run at:
+### 3. Start the backend
 
-```
-http://127.0.0.1:8000
-```
-
-### Run Frontend
-
-Open `frontend/index.html` with Live Server or browser:
-
-```
-http://127.0.0.1:5500/frontend/index.html
+```bash
+uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
----
+### 4. Open the frontend
 
-## 🔑 Environment Variables
+Just open `frontend/index.html` in your browser — no build step needed!
 
-Create a `.env` file in the backend folder:
-
-```
-API_KEY=your_api_key_here
-```
-
-> ⚠️ Required for AI analysis feature
-
----
-
-## 📡 API Endpoints
-
-### POST /scrape
-
-Extracts links from a URL
-
-**Request:**
-
-```json
-{
-  "url": "https://example.com"
-}
-```
-
-**Response:**
-
-```json
-{
-  "links": [...]
-}
+Or serve it with Python:
+```bash
+cd frontend
+python -m http.server 3000
+# Then open http://localhost:3000
 ```
 
 ---
 
-### POST /analyze
+## 🐳 Docker Deployment (Recommended)
 
-Generates AI insights
+```bash
+# Copy and fill in your API key
+cp .env.example .env
 
-**Request:**
+# Build and run everything
+docker-compose up -d
 
-```json
-{
-  "content": "webpage content"
-}
+# Frontend: http://localhost:3000
+# API:      http://localhost:8000
+# API docs: http://localhost:8000/docs
 ```
 
 ---
 
-## ❗ Common Issues
+## ☁️ Deploy to Railway / Render / Fly.io
 
-### AI Analysis Error
+### Railway (easiest)
+1. Push repo to GitHub
+2. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub
+3. Add env var: `GOOGLE_API_KEY=your_key`
+4. Done — Railway auto-detects the Dockerfile
 
+### Render
+1. New Web Service → Connect GitHub repo
+2. Build Command: `pip install -r requirements.txt`
+3. Start Command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
+4. Add env vars
+
+### Fly.io
+```bash
+fly launch
+fly secrets set GOOGLE_API_KEY=your_key
+fly deploy
 ```
-Could not resolve authentication method
-```
-
-✅ Fix:
-
-* Set API key properly
-* Ensure headers are configured
-
-### CORS Error
-
-* Check FastAPI CORS settings
 
 ---
 
-## 🚀 Future Improvements
+## 🔌 API Reference
 
-* Multi-page crawling
-* AI summarization across pages
-* Keyword clustering
-* Export to CSV / JSON
-* Chrome Extension
+All endpoints at `http://localhost:8000`. Interactive docs at `/docs`.
+
+### Auth
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/auth/register` | Create account |
+| POST | `/auth/login` | Sign in → returns token |
+| POST | `/auth/logout` | Invalidate token |
+| GET  | `/auth/me` | Current user + stats |
+
+### Scraping
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/scrape` | Scrape URL (+ AI analysis) |
+| GET  | `/history` | Search history (auth required) |
+
+### Saved Jobs
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET  | `/saved` | List saved jobs |
+| POST | `/saved` | Save a job |
+| PUT  | `/saved/{id}` | Update status/notes |
+| DELETE | `/saved/{id}` | Remove job |
+
+---
+
+## 🔑 Auth Flow
+
+Uses simple token-based auth stored in localStorage:
+1. Register/Login → server returns a 7-day session token
+2. Token stored in `localStorage` as `jm_token`
+3. Sent as `Authorization: Bearer <token>` header on all requests
+4. Passwords hashed with SHA-256 + random salt
 
 ---
 
-## 🧠 Use Cases
+## 🗄️ Database Schema
 
-* Data Science research
-* Competitive analysis
-* SEO insights
-* Automation pipelines
+SQLite (`jobmind.db`) with 4 tables:
 
----
-
-## 🤝 Contributing
-
-Contributions are welcome!
-
-1. Fork the repo
-2. Create a new branch
-3. Submit a pull request
+- **users** — email, hashed password, name, plan
+- **sessions** — bearer tokens with expiry
+- **searches** — search history per user
+- **saved_jobs** — saved listings with status tracking (saved → applied → interview → offer/rejected)
 
 ---
 
-## 📜 License
+## 🌐 Supported Job Boards
 
-This project is open-source and available under the MIT License.
+| Site | Method | Quality |
+|------|--------|---------|
+| jobicy.com | Official API | ⭐⭐⭐ |
+| remoteok.com | Official API | ⭐⭐⭐ |
+| himalayas.app | HTML scraping | ⭐⭐ |
+| weworkremotely.com | HTML scraping | ⭐⭐ |
+| Any job board | HTML fallback | ⭐ |
+
+> **Note**: Sites like LinkedIn and Indeed actively block scrapers. Use the supported sites above for best results.
 
 ---
+
+## 🛠️ Tech Stack
+
+- **Backend**: FastAPI, SQLite, BeautifulSoup4, Gemini AI
+- **Frontend**: Vanilla HTML/CSS/JS (no framework, no build step)
+- **Auth**: Token-based sessions, SHA-256 password hashing
+- **Deployment**: Docker + Nginx

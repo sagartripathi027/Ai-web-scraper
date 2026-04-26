@@ -1,142 +1,1027 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Web Scraper</title>
-  <link rel="stylesheet" href="style.css" />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobMind AI — Intelligent Job Discovery</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a28;
+    --border: #2a2a40;
+    --border2: #3a3a55;
+    --text: #e8e8f0;
+    --muted: #7878a0;
+    --accent: #7c6ff7;
+    --accent2: #4ecca3;
+    --accent3: #f7c96f;
+    --danger: #f76f6f;
+    --glow: rgba(124,111,247,0.15);
+    --glow2: rgba(78,204,163,0.1);
+    --radius: 12px;
+    --mono: 'DM Mono', monospace;
+    --sans: 'Instrument Sans', sans-serif;
+    --display: 'Syne', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── NOISE OVERLAY ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 0; opacity: 0.4;
+  }
+
+  /* ── GLOW ORBS ── */
+  .orb {
+    position: fixed; border-radius: 50%;
+    filter: blur(80px); pointer-events: none; z-index: 0;
+    animation: drift 12s ease-in-out infinite alternate;
+  }
+  .orb1 { width: 400px; height: 400px; background: rgba(124,111,247,0.08); top: -100px; left: -100px; }
+  .orb2 { width: 300px; height: 300px; background: rgba(78,204,163,0.06); bottom: 100px; right: -50px; animation-delay: -4s; }
+  .orb3 { width: 200px; height: 200px; background: rgba(247,201,111,0.05); top: 50%; left: 40%; animation-delay: -8s; }
+  @keyframes drift { from { transform: translate(0,0) scale(1); } to { transform: translate(30px,20px) scale(1.1); } }
+
+  /* ── LAYOUT ── */
+  .app { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── NAV ── */
+  nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 32px; border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,0.8); backdrop-filter: blur(20px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo {
+    font-family: var(--display); font-weight: 800; font-size: 1.3rem;
+    display: flex; align-items: center; gap: 10px; letter-spacing: -0.02em;
+  }
+  .logo-icon {
+    width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px;
+  }
+  .logo span { color: var(--accent); }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .nav-btn {
+    padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; font-family: var(--sans); border: none;
+  }
+  .nav-btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+  .nav-btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-btn.solid { background: var(--accent); color: white; }
+  .nav-btn.solid:hover { background: #6a5de8; box-shadow: 0 0 20px rgba(124,111,247,0.3); }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab {
+    padding: 7px 14px; border-radius: 7px; font-size: 0.83rem; cursor: pointer;
+    color: var(--muted); transition: all 0.2s; border: none; background: transparent; font-family: var(--sans);
+  }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { background: var(--surface2); color: var(--text); }
+  .user-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 12px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; font-size: 0.82rem; color: var(--muted);
+  }
+  .user-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); }
+
+  /* ── PAGES ── */
+  .page { display: none; flex: 1; }
+  .page.active { display: block; }
+
+  /* ── AUTH PAGE ── */
+  .auth-page {
+    display: none; min-height: 100vh;
+    align-items: center; justify-content: center;
+    padding: 40px 20px;
+  }
+  .auth-page.active { display: flex; }
+  .auth-card {
+    width: 100%; max-width: 420px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 40px; position: relative; overflow: hidden;
+  }
+  .auth-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+  }
+  .auth-title { font-family: var(--display); font-size: 1.6rem; font-weight: 800; margin-bottom: 6px; }
+  .auth-sub { color: var(--muted); font-size: 0.88rem; margin-bottom: 28px; }
+  .auth-tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--bg); border-radius: 8px; padding: 4px; }
+  .auth-tab {
+    flex: 1; padding: 8px; text-align: center; border-radius: 6px;
+    font-size: 0.85rem; cursor: pointer; transition: all 0.2s;
+    border: none; background: transparent; color: var(--muted); font-family: var(--sans);
+  }
+  .auth-tab.active { background: var(--surface2); color: var(--text); }
+
+  /* ── FORMS ── */
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 0.8rem; color: var(--muted); margin-bottom: 6px; font-family: var(--mono); }
+  .field input, .field textarea, .field select {
+    width: 100%; padding: 10px 14px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    font-size: 0.9rem; font-family: var(--sans); transition: border-color 0.2s;
+    outline: none;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,111,247,0.1); }
+  .btn {
+    padding: 11px 22px; border-radius: 9px; font-size: 0.88rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; font-family: var(--sans); border: none; display: inline-flex;
+    align-items: center; gap: 8px;
+  }
+  .btn-primary { background: var(--accent); color: white; width: 100%; justify-content: center; }
+  .btn-primary:hover { background: #6a5de8; box-shadow: 0 4px 20px rgba(124,111,247,0.3); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .btn-outline:hover { border-color: var(--accent2); color: var(--accent2); }
+  .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); }
+  .btn-danger:hover { background: rgba(247,111,111,0.1); }
+  .btn-sm { padding: 6px 12px; font-size: 0.78rem; border-radius: 7px; }
+  .btn-ghost { background: transparent; color: var(--muted); border: 1px solid transparent; }
+  .btn-ghost:hover { color: var(--text); border-color: var(--border); }
+  .error-msg { color: var(--danger); font-size: 0.82rem; margin-top: 12px; display: none; }
+  .error-msg.show { display: block; }
+  .success-msg { color: var(--accent2); font-size: 0.82rem; margin-top: 12px; display: none; }
+  .success-msg.show { display: block; }
+
+  /* ── HERO / SEARCH ── */
+  .hero {
+    text-align: center; padding: 64px 20px 40px;
+    max-width: 720px; margin: 0 auto;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 14px; background: rgba(124,111,247,0.1); border: 1px solid rgba(124,111,247,0.3);
+    border-radius: 20px; font-size: 0.78rem; color: var(--accent);
+    font-family: var(--mono); margin-bottom: 24px;
+  }
+  .hero-badge::before { content: '◉'; font-size: 8px; animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .hero h1 {
+    font-family: var(--display); font-size: clamp(2.2rem, 5vw, 3.4rem);
+    font-weight: 800; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 16px;
+  }
+  .hero h1 .grad {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  }
+  .hero p { color: var(--muted); font-size: 1rem; line-height: 1.6; margin-bottom: 36px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+  /* ── SEARCH BOX ── */
+  .search-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 6px 6px 6px 20px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 4px 40px rgba(0,0,0,0.4);
+    transition: border-color 0.3s, box-shadow 0.3s;
+    margin-bottom: 16px;
+  }
+  .search-box:focus-within { border-color: var(--accent); box-shadow: 0 4px 40px rgba(0,0,0,0.4), 0 0 0 4px rgba(124,111,247,0.1); }
+  .search-box input {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: var(--text); font-size: 0.95rem; font-family: var(--mono);
+    padding: 8px 0;
+  }
+  .search-box input::placeholder { color: var(--muted); }
+  .search-box .go-btn {
+    background: linear-gradient(135deg, var(--accent), #5c52d9);
+    color: white; border: none; border-radius: 10px;
+    padding: 12px 24px; font-size: 0.88rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; font-family: var(--sans);
+    white-space: nowrap;
+  }
+  .search-box .go-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(124,111,247,0.4); }
+  .search-box .go-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .quick-links { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .quick-link {
+    padding: 5px 12px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; font-size: 0.78rem; color: var(--muted); cursor: pointer;
+    transition: all 0.2s; font-family: var(--mono);
+  }
+  .quick-link:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  /* ── PROGRESS ── */
+  .progress-bar {
+    height: 2px; background: var(--border); border-radius: 2px; margin: 20px 0; overflow: hidden; display: none;
+  }
+  .progress-bar.show { display: block; }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px; width: 0; transition: width 0.4s ease; position: relative;
+  }
+  .progress-fill::after {
+    content: ''; position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent2);
+    box-shadow: 0 0 8px var(--accent2);
+  }
+  .status-text { text-align: center; font-size: 0.82rem; color: var(--muted); font-family: var(--mono); margin-bottom: 8px; }
+
+  /* ── MAIN CONTAINER ── */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px 60px; }
+
+  /* ── RESULTS ── */
+  .results-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; flex-wrap: gap;
+  }
+  .results-count {
+    font-family: var(--mono); font-size: 0.82rem; color: var(--muted);
+    background: var(--surface); border: 1px solid var(--border);
+    padding: 6px 12px; border-radius: 20px;
+  }
+  .results-count span { color: var(--accent2); font-weight: 500; }
+  .filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .filter-input {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); padding: 7px 12px; font-size: 0.83rem; font-family: var(--sans);
+    outline: none; transition: border-color 0.2s;
+  }
+  .filter-input:focus { border-color: var(--accent); }
+
+  /* ── AI ANALYSIS ── */
+  .ai-card {
+    background: linear-gradient(135deg, rgba(124,111,247,0.08), rgba(78,204,163,0.05));
+    border: 1px solid rgba(124,111,247,0.25); border-radius: 16px;
+    padding: 24px; margin-bottom: 24px; position: relative; overflow: hidden;
+  }
+  .ai-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), var(--accent2), transparent);
+  }
+  .ai-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .ai-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; background: rgba(124,111,247,0.15); border: 1px solid rgba(124,111,247,0.3);
+    border-radius: 20px; font-size: 0.75rem; font-family: var(--mono); color: var(--accent);
+  }
+  .ai-card-body { font-size: 0.88rem; line-height: 1.7; color: var(--text); white-space: pre-wrap; }
+
+  /* ── JOB CARDS ── */
+  .jobs-grid { display: grid; gap: 12px; }
+  .job-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 20px 24px;
+    display: flex; align-items: flex-start; gap: 16px;
+    transition: all 0.2s; cursor: pointer; position: relative;
+    animation: slideUp 0.3s ease forwards; opacity: 0;
+  }
+  @keyframes slideUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+  .job-card:hover { border-color: var(--border2); transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+  .job-company-logo {
+    width: 44px; height: 44px; border-radius: 10px; background: var(--surface2);
+    border: 1px solid var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 1rem; color: var(--accent);
+    font-family: var(--display);
+  }
+  .job-info { flex: 1; min-width: 0; }
+  .job-title {
+    font-weight: 600; font-size: 0.95rem; color: var(--text);
+    margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .job-company { font-size: 0.82rem; color: var(--muted); margin-bottom: 10px; }
+  .job-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .job-tag {
+    padding: 3px 10px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; font-size: 0.72rem; font-family: var(--mono); color: var(--muted);
+  }
+  .job-tag.salary { border-color: rgba(78,204,163,0.3); color: var(--accent2); background: rgba(78,204,163,0.05); }
+  .job-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: flex-start; }
+  .icon-btn {
+    width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--surface2); color: var(--muted); cursor: pointer; display: flex;
+    align-items: center; justify-content: center; transition: all 0.2s; font-size: 14px;
+  }
+  .icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .icon-btn.saved { border-color: var(--accent2); color: var(--accent2); background: rgba(78,204,163,0.1); }
+
+  /* ── SAVED PAGE ── */
+  .page-header { margin-bottom: 32px; }
+  .page-header h2 { font-family: var(--display); font-size: 1.8rem; font-weight: 800; margin-bottom: 6px; }
+  .page-header p { color: var(--muted); font-size: 0.88rem; }
+  .kanban { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; }
+  .kanban-col { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; }
+  .kanban-col-header {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.8rem; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 14px; color: var(--muted);
+  }
+  .kanban-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .saved-card {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; margin-bottom: 10px; transition: all 0.2s;
+  }
+  .saved-card:hover { border-color: var(--border2); }
+  .saved-card-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .saved-card-co { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; }
+  .saved-card-actions { display: flex; gap: 4px; flex-wrap: wrap; }
+
+  /* ── HISTORY PAGE ── */
+  .history-list { display: flex; flex-direction: column; gap: 10px; }
+  .history-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px 20px; display: flex; align-items: center; gap: 16px;
+    transition: border-color 0.2s;
+  }
+  .history-item:hover { border-color: var(--border2); }
+  .history-item-url { flex: 1; font-family: var(--mono); font-size: 0.82rem; color: var(--accent); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .history-item-meta { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+  .badge { padding: 3px 10px; border-radius: 20px; font-size: 0.72rem; font-family: var(--mono); }
+  .badge-green { background: rgba(78,204,163,0.1); color: var(--accent2); border: 1px solid rgba(78,204,163,0.2); }
+  .badge-purple { background: rgba(124,111,247,0.1); color: var(--accent); border: 1px solid rgba(124,111,247,0.2); }
+
+  /* ── PROFILE PAGE ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 24px; text-align: center;
+  }
+  .stat-value { font-family: var(--display); font-size: 2.4rem; font-weight: 800; color: var(--accent); }
+  .stat-label { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+  }
+  .empty-icon { font-size: 3rem; margin-bottom: 16px; opacity: 0.4; }
+  .empty h3 { font-family: var(--display); font-size: 1.2rem; margin-bottom: 8px; color: var(--text); }
+  .empty p { font-size: 0.85rem; }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+    z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
+    padding: 32px; width: 100%; max-width: 460px; position: relative;
+    animation: modalIn 0.25s ease;
+  }
+  @keyframes modalIn { from { opacity:0; transform:scale(0.95) translateY(10px); } to { opacity:1; transform:none; } }
+  .modal-close {
+    position: absolute; top: 16px; right: 16px; width: 28px; height: 28px;
+    border-radius: 50%; border: 1px solid var(--border); background: var(--surface2);
+    color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.2s;
+  }
+  .modal-close:hover { border-color: var(--danger); color: var(--danger); }
+  .modal h3 { font-family: var(--display); font-size: 1.2rem; margin-bottom: 6px; }
+  .modal p { font-size: 0.85rem; color: var(--muted); margin-bottom: 20px; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 28px; right: 28px; z-index: 300;
+    background: var(--surface2); border: 1px solid var(--border2);
+    padding: 12px 20px; border-radius: 10px; font-size: 0.85rem;
+    transform: translateY(100px) scale(0.9); opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    pointer-events: none; max-width: 320px;
+  }
+  #toast.show { transform: none; opacity: 1; }
+  #toast.toast-success { border-color: rgba(78,204,163,0.4); color: var(--accent2); }
+  #toast.toast-error { border-color: rgba(247,111,111,0.4); color: var(--danger); }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 600px) {
+    nav { padding: 12px 16px; }
+    .nav-tabs { display: none; }
+    .hero { padding: 40px 16px 28px; }
+    .container { padding: 0 16px 40px; }
+  }
+  
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── SECTION TRANSITIONS ── */
+  .fade-in { animation: fadeIn 0.4s ease forwards; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+</style>
 </head>
 <body>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+<div class="orb orb3"></div>
 
-  <div class="noise"></div>
+<!-- TOAST -->
+<div id="toast"></div>
 
-  <header class="header">
+<!-- AUTH MODAL OVERLAY -->
+<div class="modal-overlay" id="authModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAuth()">✕</button>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="loginTab" onclick="switchAuth('login')">Sign In</button>
+      <button class="auth-tab" id="registerTab" onclick="switchAuth('register')">Create Account</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="loginForm">
+      <div class="field">
+        <label>EMAIL</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>PASSWORD</label>
+        <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="error-msg" id="loginError"></div>
+      <button class="btn btn-primary" onclick="doLogin()" style="margin-top:8px">Sign In →</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="registerForm" style="display:none">
+      <div class="field">
+        <label>FULL NAME</label>
+        <input type="text" id="regName" placeholder="Your Name">
+      </div>
+      <div class="field">
+        <label>EMAIL</label>
+        <input type="email" id="regEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>PASSWORD (min 6 chars)</label>
+        <input type="password" id="regPassword" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="error-msg" id="regError"></div>
+      <button class="btn btn-primary" onclick="doRegister()" style="margin-top:8px">Create Account →</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTES MODAL -->
+<div class="modal-overlay" id="notesModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeNotesModal()">✕</button>
+    <h3>Update Application</h3>
+    <p>Track status and add notes for this job</p>
+    <div class="field">
+      <label>STATUS</label>
+      <select id="notesStatus" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px 14px;width:100%;font-family:var(--sans);font-size:0.9rem;outline:none;">
+        <option value="saved">💾 Saved</option>
+        <option value="applied">📤 Applied</option>
+        <option value="interview">🎤 Interview</option>
+        <option value="offer">🎉 Offer</option>
+        <option value="rejected">❌ Rejected</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>NOTES</label>
+      <textarea id="notesText" rows="3" placeholder="Add any notes..." style="resize:vertical;"></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="saveNotes()">Save</button>
+  </div>
+</div>
+
+<div class="app">
+  <!-- NAV -->
+  <nav>
     <div class="logo">
-      <span class="logo-icon">⬡</span>
-      <span class="logo-text">WebMind<span class="accent">AI</span></span>
+      <div class="logo-icon">⚡</div>
+      Job<span>Mind</span> AI
     </div>
-    <div class="tagline">Intelligent Web Extraction Engine</div>
-  </header>
+    <div class="nav-tabs" id="navTabs">
+      <button class="nav-tab active" onclick="showPage('search')">🔍 Discover</button>
+      <button class="nav-tab" onclick="showPage('saved')">💾 Saved</button>
+      <button class="nav-tab" onclick="showPage('history')">📋 History</button>
+      <button class="nav-tab" onclick="showPage('profile')">👤 Profile</button>
+    </div>
+    <div class="nav-right" id="navRight">
+      <button class="nav-btn ghost" onclick="openAuth('login')">Sign In</button>
+      <button class="nav-btn solid" onclick="openAuth('register')">Get Started</button>
+    </div>
+  </nav>
 
-  <main class="main">
+  <!-- SEARCH PAGE -->
+  <div class="page active" id="page-search">
+    <div class="hero">
+      <div class="hero-badge">AI-Powered Job Discovery</div>
+      <h1>Find Your Next<br><span class="grad">Dream Role</span></h1>
+      <p>Paste any job board URL. Our AI scrapes listings and analyzes market trends — in seconds.</p>
 
-    <section class="hero">
-      <h1 class="hero-title">
-        <span class="line1">Scrape.</span>
-        <span class="line2">Analyze.</span>
-        <span class="line3">Understand.</span>
-      </h1>
-      <p class="hero-sub">Paste any URL — our AI extracts all links and delivers a deep intelligence report.</p>
-    </section>
-
-    <section class="input-section">
-      <div class="input-wrapper">
-        <span class="input-prefix">https://</span>
-        <input
-          type="text"
-          id="urlInput"
-          placeholder="https://github.com"
-          autocomplete="off"
-          spellcheck="false"
-        />
-        <button id="scrapeBtn" onclick="scrape()">
-          <span class="btn-text">Analyze</span>
-          <span class="btn-arrow">→</span>
-        </button>
+      <div class="search-box">
+        <input type="url" id="urlInput" placeholder="https://remoteok.com or https://jobicy.com" autocomplete="off">
+        <button class="go-btn" id="scrapeBtn" onclick="doScrape()">Analyze →</button>
       </div>
-      <div class="input-hints">
-        <span>Try: wikipedia.org</span>
-        <span>•</span>
-        <span>github.com</span>
-        <span>•</span>
-        <span>news.ycombinator.com</span>
+      <div class="quick-links">
+        <span class="quick-link" onclick="setUrl('https://remoteok.com')">RemoteOK</span>
+        <span class="quick-link" onclick="setUrl('https://jobicy.com')">Jobicy</span>
+        <span class="quick-link" onclick="setUrl('https://himalayas.app/jobs')">Himalayas</span>
+        <span class="quick-link" onclick="setUrl('https://weworkremotely.com')">WeWorkRemotely</span>
+        <span class="quick-link" onclick="setUrl('https://jobs.ashbyhq.com')">Ashby</span>
       </div>
-    </section>
-
-    <div id="loader" class="loader hidden">
-      <div class="loader-bar">
-        <div class="loader-fill"></div>
-      </div>
-      <p class="loader-text">Scraping & analyzing with AI<span class="dots">...</span></p>
     </div>
 
-    <section id="output" class="output hidden">
-
-      <div class="output-meta">
-        <div class="meta-item">
-          <span class="meta-label">URL Analyzed</span>
-          <span class="meta-value" id="metaUrl">—</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">Links Found</span>
-          <span class="meta-value" id="metaCount">—</span>
-        </div>
-        <div class="meta-item">
-          <span class="meta-label">Status</span>
-          <span class="meta-value status-ok">✓ Success</span>
-        </div>
+    <div class="container">
+      <div class="progress-bar" id="progressBar">
+        <div class="progress-fill" id="progressFill"></div>
       </div>
+      <div class="status-text" id="statusText"></div>
 
-      <div class="cards-grid">
-
-        <div class="card card-ai">
-          <div class="card-header">
-            <span class="card-icon">◈</span>
-            <h2 class="card-title">AI Analysis</h2>
-            <span class="card-badge">GPT-powered</span>
+      <div id="resultsArea" style="display:none">
+        <div class="ai-card" id="aiCard" style="display:none">
+          <div class="ai-card-header">
+            <div class="ai-badge">✦ Gemini AI Analysis</div>
           </div>
-          <div class="card-body" id="aiAnalysis">
-            <p class="placeholder-text">Analysis will appear here...</p>
+          <div class="ai-card-body" id="aiBody"></div>
+        </div>
+
+        <div class="results-header">
+          <div class="results-count">Found <span id="countSpan">0</span> jobs</div>
+          <div class="filter-row">
+            <input class="filter-input" id="filterInput" placeholder="🔍 Filter jobs..." oninput="filterJobs()" style="width:200px">
           </div>
         </div>
 
-        <div class="card card-links">
-          <div class="card-header">
-            <span class="card-icon">⊞</span>
-            <h2 class="card-title">Extracted Links</h2>
-            <div class="header-actions">
-              <input type="text" id="linkSearch" placeholder="Filter links..." oninput="filterLinks()" />
-              <button class="export-btn" onclick="exportCSV()">↓ CSV</button>
+        <div class="jobs-grid" id="jobsGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAVED PAGE -->
+  <div class="page" id="page-saved">
+    <div class="container" style="padding-top:32px">
+      <div class="page-header">
+        <h2>Saved Jobs</h2>
+        <p>Track your applications through the hiring pipeline</p>
+      </div>
+      <div id="savedContent"></div>
+    </div>
+  </div>
+
+  <!-- HISTORY PAGE -->
+  <div class="page" id="page-history">
+    <div class="container" style="padding-top:32px">
+      <div class="page-header">
+        <h2>Search History</h2>
+        <p>All your past job scraping sessions</p>
+      </div>
+      <div id="historyContent"></div>
+    </div>
+  </div>
+
+  <!-- PROFILE PAGE -->
+  <div class="page" id="page-profile">
+    <div class="container" style="padding-top:32px">
+      <div class="page-header">
+        <h2>Profile</h2>
+        <p>Your JobMind AI account</p>
+      </div>
+      <div id="profileContent"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+let allJobs = [];
+let filterTimer = null;
+let currentUser = null;
+let currentUrl = '';
+let editingJobId = null;
+
+// ---------- HELPERS ----------
+function getToken() { return localStorage.getItem('jm_token'); }
+function authHeaders() {
+  const t = getToken();
+  return t ? { 'Content-Type': 'application/json', 'Authorization': `Bearer ${t}` }
+           : { 'Content-Type': 'application/json' };
+}
+function setUrl(u) {
+  document.getElementById('urlInput').value = u;
+  document.getElementById('urlInput').focus();
+}
+function setStatus(msg, ok = true) {
+  const el = document.getElementById('statusText');
+  el.textContent = msg;
+  el.style.color = ok ? '' : 'var(--danger)';
+}
+function toast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `show toast-${type}`;
+  setTimeout(() => t.className = '', 3000);
+}
+function animateProgress(target, duration = 400) {
+  const bar = document.getElementById('progressFill');
+  const current = parseFloat(bar.style.width) || 0;
+  const start = performance.now();
+  const diff = target - current;
+  function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    bar.style.width = (current + diff * t) + '%';
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+// ---------- AUTH ----------
+function openAuth(mode = 'login') {
+  switchAuth(mode);
+  document.getElementById('authModal').classList.add('open');
+}
+function closeAuth() { document.getElementById('authModal').classList.remove('open'); }
+function switchAuth(mode) {
+  document.getElementById('loginForm').style.display = mode === 'login' ? '' : 'none';
+  document.getElementById('registerForm').style.display = mode === 'register' ? '' : 'none';
+  document.getElementById('loginTab').classList.toggle('active', mode === 'login');
+  document.getElementById('registerTab').classList.toggle('active', mode === 'register');
+}
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.classList.remove('show');
+  if (!email || !password) { errEl.textContent = 'Fill in all fields'; errEl.classList.add('show'); return; }
+  try {
+    const res = await fetch(`${API}/auth/login`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password}) });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.detail || 'Login failed'; errEl.classList.add('show'); return; }
+    localStorage.setItem('jm_token', data.token);
+    currentUser = data.user;
+    closeAuth();
+    updateNavForUser();
+    toast(`Welcome back, ${data.user.name}! 👋`);
+  } catch(e) { errEl.textContent = 'Connection error'; errEl.classList.add('show'); }
+}
+
+async function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+  const errEl = document.getElementById('regError');
+  errEl.classList.remove('show');
+  if (!email || !password) { errEl.textContent = 'Fill in all fields'; errEl.classList.add('show'); return; }
+  try {
+    const res = await fetch(`${API}/auth/register`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password,name}) });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.detail || 'Registration failed'; errEl.classList.add('show'); return; }
+    localStorage.setItem('jm_token', data.token);
+    currentUser = data.user;
+    closeAuth();
+    updateNavForUser();
+    toast(`Account created! Welcome, ${data.user.name}! 🎉`);
+  } catch(e) { errEl.textContent = 'Connection error'; errEl.classList.add('show'); }
+}
+
+async function doLogout() {
+  await fetch(`${API}/auth/logout`, { method:'POST', headers: authHeaders() });
+  localStorage.removeItem('jm_token');
+  currentUser = null;
+  updateNavForUser();
+  toast('Signed out successfully');
+  showPage('search');
+}
+
+function updateNavForUser() {
+  const navRight = document.getElementById('navRight');
+  const navTabs = document.getElementById('navTabs');
+  if (currentUser) {
+    navRight.innerHTML = `
+      <div class="user-pill"><div class="user-dot"></div>${currentUser.name}</div>
+      <button class="nav-btn ghost" onclick="doLogout()">Sign Out</button>
+    `;
+    navTabs.style.display = 'flex';
+  } else {
+    navRight.innerHTML = `
+      <button class="nav-btn ghost" onclick="openAuth('login')">Sign In</button>
+      <button class="nav-btn solid" onclick="openAuth('register')">Get Started</button>
+    `;
+  }
+}
+
+async function checkSession() {
+  const token = getToken();
+  if (!token) return;
+  try {
+    const res = await fetch(`${API}/auth/me`, { headers: authHeaders() });
+    if (res.ok) {
+      const data = await res.json();
+      currentUser = data.user;
+      updateNavForUser();
+    } else {
+      localStorage.removeItem('jm_token');
+    }
+  } catch(e) {}
+}
+
+// ---------- SCRAPE ----------
+async function doScrape() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) { toast('Enter a URL first', 'error'); return; }
+  currentUrl = url;
+
+  const btn = document.getElementById('scrapeBtn');
+  btn.disabled = true; btn.textContent = 'Scanning...';
+  const bar = document.getElementById('progressBar');
+  bar.classList.add('show');
+  animateProgress(15);
+  setStatus('Fetching job listings...');
+  document.getElementById('resultsArea').style.display = 'none';
+
+  try {
+    animateProgress(45, 1000);
+    const res = await fetch(`${API}/scrape`, {
+      method:'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ url })
+    });
+    animateProgress(80);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Scraping failed');
+    animateProgress(100);
+    await new Promise(r => setTimeout(r, 300));
+    renderResults(data);
+  } catch(e) {
+    setStatus(e.message, false);
+    toast(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Analyze →';
+    setTimeout(() => { bar.classList.remove('show'); animateProgress(0, 50); }, 600);
+  }
+}
+
+function renderResults(data) {
+  allJobs = data.jobs || [];
+  document.getElementById('countSpan').textContent = allJobs.length;
+  document.getElementById('resultsArea').style.display = 'block';
+  setStatus(data.message);
+
+  // AI card
+  const aiCard = document.getElementById('aiCard');
+  const aiBody = document.getElementById('aiBody');
+  if (data.ai_analysis && !data.ai_analysis.startsWith('⚠️')) {
+    aiBody.textContent = data.ai_analysis;
+    aiCard.style.display = 'block';
+  } else {
+    aiCard.style.display = 'none';
+  }
+
+  renderJobs(allJobs);
+}
+
+function renderJobs(jobs) {
+  const grid = document.getElementById('jobsGrid');
+  if (!jobs.length) {
+    grid.innerHTML = `<div class="empty">
+      <div class="empty-icon">🔍</div>
+      <h3>No jobs found</h3>
+      <p>This site may block scrapers. Try RemoteOK or Jobicy.</p>
+    </div>`;
+    return;
+  }
+  grid.innerHTML = jobs.map((j, i) => {
+    const letter = (j.company || j.title)[0].toUpperCase();
+    const delay = Math.min(i * 40, 400);
+    return `
+    <div class="job-card" style="animation-delay:${delay}ms">
+      <div class="job-company-logo">${letter}</div>
+      <div class="job-info">
+        <div class="job-title">${esc(j.title)}</div>
+        <div class="job-company">${esc(j.company)} • ${esc(j.location)}</div>
+        <div class="job-tags">
+          ${j.salary !== 'N/A' ? `<span class="job-tag salary">💰 ${esc(j.salary)}</span>` : ''}
+          <span class="job-tag">${esc(j.location)}</span>
+        </div>
+      </div>
+      <div class="job-actions">
+        <button class="icon-btn" onclick="saveJobToList(${i})" title="Save job" id="saveBtn-${i}">💾</button>
+        <a href="${esc(j.url)}" target="_blank" rel="noopener">
+          <button class="icon-btn" title="Open job">↗</button>
+        </a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filterJobs() {
+  clearTimeout(filterTimer);
+  filterTimer = setTimeout(() => {
+    const q = document.getElementById('filterInput').value.toLowerCase();
+    const filtered = allJobs.filter(j =>
+      j.title.toLowerCase().includes(q) ||
+      j.company.toLowerCase().includes(q) ||
+      j.location.toLowerCase().includes(q)
+    );
+    document.getElementById('countSpan').textContent = filtered.length;
+    renderJobs(filtered);
+  }, 200);
+}
+
+async function saveJobToList(idx) {
+  if (!currentUser) { openAuth('login'); return; }
+  const job = allJobs[idx];
+  try {
+    const res = await fetch(`${API}/saved`, {
+      method:'POST', headers: authHeaders(),
+      body: JSON.stringify({ job, source_url: currentUrl })
+    });
+    if (res.ok) {
+      const btn = document.getElementById(`saveBtn-${idx}`);
+      if (btn) { btn.classList.add('saved'); btn.textContent = '✓'; }
+      toast('Job saved! ✓');
+    }
+  } catch(e) { toast('Failed to save', 'error'); }
+}
+
+// ---------- PAGES ----------
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`page-${name}`).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    if (t.textContent.toLowerCase().includes(name.slice(0,3))) t.classList.add('active');
+  });
+  if (name === 'saved') loadSaved();
+  if (name === 'history') loadHistory();
+  if (name === 'profile') loadProfile();
+}
+
+// ---------- SAVED JOBS ----------
+async function loadSaved() {
+  const el = document.getElementById('savedContent');
+  if (!currentUser) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🔐</div><h3>Sign in to save jobs</h3><p>Create an account to track your applications.</p><br><button class="btn btn-primary" style="width:auto;margin:0 auto;display:block" onclick="openAuth('login')">Sign In</button></div>`;
+    return;
+  }
+  try {
+    const res = await fetch(`${API}/saved`, { headers: authHeaders() });
+    const data = await res.json();
+    const jobs = data.jobs || [];
+    if (!jobs.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">💾</div><h3>No saved jobs yet</h3><p>Save jobs from the Discover tab to track them here.</p></div>`;
+      return;
+    }
+    const statuses = ['saved', 'applied', 'interview', 'offer', 'rejected'];
+    const colors = { saved:'#7878a0', applied:'#7c6ff7', interview:'#f7c96f', offer:'#4ecca3', rejected:'#f76f6f' };
+    const labels = { saved:'💾 Saved', applied:'📤 Applied', interview:'🎤 Interview', offer:'🎉 Offer', rejected:'❌ Rejected' };
+    const grouped = {};
+    statuses.forEach(s => grouped[s] = []);
+    jobs.forEach(j => { if (grouped[j.status]) grouped[j.status].push(j); else grouped['saved'].push(j); });
+
+    el.innerHTML = `<div class="kanban">${statuses.map(s => `
+      <div class="kanban-col">
+        <div class="kanban-col-header">
+          <div class="kanban-dot" style="background:${colors[s]}"></div>
+          ${labels[s]} <span style="margin-left:auto;font-size:0.72rem">${grouped[s].length}</span>
+        </div>
+        ${grouped[s].map(j => `
+          <div class="saved-card">
+            <div class="saved-card-title">${esc(j.title)}</div>
+            <div class="saved-card-co">${esc(j.company)}</div>
+            <div class="saved-card-actions">
+              <button class="btn btn-outline btn-sm" onclick="openNotes(${j.id}, '${esc(j.status)}')">Edit</button>
+              <a href="${esc(j.url)}" target="_blank"><button class="btn btn-ghost btn-sm">↗</button></a>
+              <button class="btn btn-danger btn-sm" onclick="deleteJob(${j.id})">✕</button>
             </div>
+          </div>`).join('')}
+      </div>`).join('')}</div>`;
+  } catch(e) { el.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><h3>Error loading saved jobs</h3><p>${e.message}</p></div>`; }
+}
+
+function openNotes(jobId, status) {
+  editingJobId = jobId;
+  document.getElementById('notesStatus').value = status;
+  document.getElementById('notesText').value = '';
+  document.getElementById('notesModal').classList.add('open');
+}
+function closeNotesModal() { document.getElementById('notesModal').classList.remove('open'); editingJobId = null; }
+
+async function saveNotes() {
+  if (!editingJobId) return;
+  const status = document.getElementById('notesStatus').value;
+  const notes = document.getElementById('notesText').value;
+  await fetch(`${API}/saved/${editingJobId}`, {
+    method:'PUT', headers: authHeaders(),
+    body: JSON.stringify({ status, notes })
+  });
+  closeNotesModal();
+  toast('Updated ✓');
+  loadSaved();
+}
+
+async function deleteJob(jobId) {
+  if (!confirm('Remove this job?')) return;
+  await fetch(`${API}/saved/${jobId}`, { method:'DELETE', headers: authHeaders() });
+  toast('Removed');
+  loadSaved();
+}
+
+// ---------- HISTORY ----------
+async function loadHistory() {
+  const el = document.getElementById('historyContent');
+  if (!currentUser) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">🔐</div><h3>Sign in to view history</h3><p>Your search history is saved when you're logged in.</p><br><button class="btn btn-primary" style="width:auto;margin:0 auto;display:block" onclick="openAuth('login')">Sign In</button></div>`;
+    return;
+  }
+  try {
+    const res = await fetch(`${API}/history`, { headers: authHeaders() });
+    const data = await res.json();
+    const history = data.history || [];
+    if (!history.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📋</div><h3>No searches yet</h3><p>Your searches will appear here after you use Discover.</p></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="history-list">${history.map(h => {
+      const date = new Date(h.created_at * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+      return `
+        <div class="history-item">
+          <div style="font-size:1.2rem">🔍</div>
+          <div class="history-item-url">${esc(h.url)}</div>
+          <span class="badge badge-green">${h.job_count} jobs</span>
+          <div class="history-item-meta">${date}</div>
+          <button class="btn btn-ghost btn-sm" onclick="reScrape('${esc(h.url)}')">↺ Re-run</button>
+        </div>`;
+    }).join('')}</div>`;
+  } catch(e) {}
+}
+
+function reScrape(url) {
+  showPage('search');
+  setTimeout(() => { setUrl(url); doScrape(); }, 100);
+}
+
+// ---------- PROFILE ----------
+async function loadProfile() {
+  const el = document.getElementById('profileContent');
+  if (!currentUser) {
+    el.innerHTML = `<div class="empty"><div class="empty-icon">👤</div><h3>Sign in to view profile</h3><br><button class="btn btn-primary" style="width:auto;margin:0 auto;display:block" onclick="openAuth('login')">Sign In</button></div>`;
+    return;
+  }
+  try {
+    const res = await fetch(`${API}/auth/me`, { headers: authHeaders() });
+    const data = await res.json();
+    const stats = data.stats;
+    el.innerHTML = `
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-value">${stats.total_searches}</div>
+          <div class="stat-label">Total Searches</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${stats.saved_jobs}</div>
+          <div class="stat-label">Saved Jobs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">${stats.applied}</div>
+          <div class="stat-label">Applied</div>
+        </div>
+      </div>
+      <div class="ai-card" style="max-width:500px">
+        <div class="ai-card-header"><div class="ai-badge">👤 Account</div></div>
+        <div style="display:grid;gap:12px;font-size:0.88rem">
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--muted)">Name</span>
+            <span>${esc(data.user.name)}</span>
           </div>
-          <div class="table-wrapper">
-            <table id="linksTable">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Link Text</th>
-                  <th>URL</th>
-                  <th>Type</th>
-                  <th>Open</th>
-                </tr>
-              </thead>
-              <tbody id="linksBody">
-              </tbody>
-            </table>
+          <div class="divider" style="margin:0"></div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--muted)">Email</span>
+            <span>${esc(data.user.email)}</span>
           </div>
-          <div class="table-footer">
-            <span id="linkCountLabel">0 links</span>
-            <span id="filterCount" class="filter-count"></span>
+          <div class="divider" style="margin:0"></div>
+          <div style="display:flex;justify-content:space-between">
+            <span style="color:var(--muted)">Plan</span>
+            <span class="badge badge-purple">${data.user.plan}</span>
           </div>
         </div>
-
       </div>
-    </section>
+      <div style="margin-top:20px">
+        <button class="btn btn-danger" onclick="doLogout()">Sign Out</button>
+      </div>`;
+  } catch(e) {}
+}
 
-    <div id="errorBox" class="error-box hidden">
-      <span class="error-icon">✕</span>
-      <span id="errorMsg">Something went wrong.</span>
-    </div>
+// ---------- UTILS ----------
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-  </main>
+// ---------- KEYBOARD ----------
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doScrape();
+});
 
-  <footer class="footer">
-    <span>Built with FastAPI + BeautifulSoup + Claude AI</span>
-    <span class="footer-dot">◆</span>
-    <span>Major Project 2026</span>
-  </footer>
-
-  <script src="script.js"></script>
+// ---------- INIT ----------
+checkSession();
+</script>
 </body>
 </html>
