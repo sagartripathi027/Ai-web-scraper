@@ -1,8 +1,3 @@
-"""
-database.py — SQLite database layer using aiosqlite
-Tables: users, sessions, searches, saved_jobs
-"""
-
 import sqlite3
 import hashlib
 import secrets
@@ -74,9 +69,7 @@ def init_db():
     conn.close()
     print("✅ Database initialized")
 
-
-# ---------- AUTH ----------
-
+# AUTH
 def hash_password(password: str) -> str:
     salt = secrets.token_hex(16)
     hashed = hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
@@ -153,8 +146,7 @@ def delete_session(token: str):
     conn.close()
 
 
-# ---------- SEARCHES ----------
-
+# SEARCHES
 def log_search(user_id: Optional[int], url: str, job_count: int, ai_summary: str) -> int:
     conn = get_db()
     cur = conn.execute(
@@ -186,10 +178,8 @@ def get_search_history(user_id: int, limit: int = 20) -> List[Dict]:
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
-
-
-# ---------- SAVED JOBS ----------
-
+    
+# SAVED JOBS
 def save_job(user_id: int, job: Dict, source_url: str) -> Optional[int]:
     conn = get_db()
     try:
