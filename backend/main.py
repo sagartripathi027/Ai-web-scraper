@@ -1,8 +1,3 @@
-"""
-main.py — Production-ready FastAPI backend for JobMindAI
-Auth + DB + Scraping + AI Analysis
-"""
-
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Header, Depends
@@ -32,7 +27,7 @@ from backend.database import (
     get_user_stats
 )
 
-# ---------- INIT ----------
+# __INIT__
 init_db()
 app = FastAPI(title="JobMindAI API", version="2.0.0")
 
@@ -44,7 +39,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ---------- MODELS ----------
+# MODELS
 
 class RegisterRequest(BaseModel):
     email: str
@@ -90,7 +85,7 @@ class ScrapeResponse(BaseModel):
     message: str
 
 
-# ---------- AUTH DEPENDENCY ----------
+# AUTH DEPENDENCY
 
 def get_current_user(authorization: Optional[str] = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
@@ -108,7 +103,7 @@ def get_optional_user(authorization: Optional[str] = Header(None)):
     return get_user_by_token(token)
 
 
-# ---------- AI ANALYSIS ----------
+# AI ANALYSIS
 
 def generate_ai_analysis(url: str, page_summary: dict, jobs: list) -> str:
     if not GEMINI_AVAILABLE:
@@ -144,7 +139,7 @@ Be specific and actionable."""
         return f"AI analysis unavailable: {str(e)}"
 
 
-# ---------- ERROR HANDLING ----------
+# ERROR HANDLING
 
 @app.exception_handler(RequestValidationError)
 async def validation_handler(request, exc):
@@ -154,7 +149,7 @@ async def validation_handler(request, exc):
     })
 
 
-# ---------- ROUTES ----------
+# ROUTES 
 
 @app.get("/")
 def root():
@@ -165,7 +160,7 @@ def health():
     return {"status": "ok", "gemini": GEMINI_AVAILABLE}
 
 
-# -- AUTH --
+# AUTH
 
 @app.post("/auth/register")
 def register(body: RegisterRequest):
@@ -211,7 +206,7 @@ def me(user=Depends(get_current_user)):
     }
 
 
-# -- SCRAPING --
+# SCRAPING
 
 @app.post("/scrape", response_model=ScrapeResponse)
 def scrape_url(body: ScrapeRequest, user=Depends(get_optional_user)):
@@ -240,14 +235,14 @@ def scrape_url(body: ScrapeRequest, user=Depends(get_optional_user)):
     )
 
 
-# -- HISTORY --
+# HISTORY 
 
 @app.get("/history")
 def history(user=Depends(get_current_user)):
     return {"success": True, "history": get_search_history(user["id"])}
 
 
-# -- SAVED JOBS --
+# SAVED JOBS 
 
 @app.get("/saved")
 def get_saved(user=Depends(get_current_user)):
@@ -269,7 +264,7 @@ def delete_saved(job_id: int, user=Depends(get_current_user)):
     return {"success": True}
 
 
-# ---------- RUN ----------
+# RUN 
 
 if __name__ == "__main__":
     import uvicorn
